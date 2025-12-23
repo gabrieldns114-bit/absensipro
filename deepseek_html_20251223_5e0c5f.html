@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABSENSI CLOUD - Sistem Penggajian Lengkap</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h2>ABSENSI CLOUD</h2>
+            <p>Loading aplikasi...</p>
+        </div>
+    </div>
+
+    <!-- Auth Screen -->
+    <div id="authScreen" class="auth-screen" style="display: none;">
+        <div class="auth-container">
+            <div class="auth-header">
+                <i class="fas fa-cloud"></i>
+                <h1>ABSENSI CLOUD</h1>
+                <p>Sistem Absensi & Penggajian Terintegrasi</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="tab-btn active" data-tab="login">Login</button>
+                <button class="tab-btn" data-tab="register">Register</button>
+            </div>
+            
+            <div id="loginTab" class="auth-tab active">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="loginEmail" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <button id="loginBtn" class="btn-auth">
+                    <i class="fas fa-sign-in-alt"></i> Login ke Sistem
+                </button>
+                <div class="auth-divider">
+                    <span>atau login dengan</span>
+                </div>
+                <button id="googleLoginBtn" class="btn-auth-google">
+                    <i class="fab fa-google"></i> Google Account
+                </button>
+            </div>
+            
+            <div id="registerTab" class="auth-tab">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Nama Lengkap</label>
+                    <input type="text" id="registerName" placeholder="Nama karyawan">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="registerEmail" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="registerPassword" placeholder="Minimal 6 karakter">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-briefcase"></i> Posisi/Jabatan</label>
+                    <select id="registerPosition">
+                        <option value="">Pilih Posisi</option>
+                        <option value="staff">Staff</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="manager">Manager</option>
+                        <option value="direktur">Direktur</option>
+                    </select>
+                </div>
+                <button id="registerBtn" class="btn-auth">
+                    <i class="fas fa-user-plus"></i> Daftar Akun Baru
+                </button>
+            </div>
+            
+            <div class="auth-footer">
+                <p><i class="fas fa-info-circle"></i> Data tersimpan aman di Firebase Cloud</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="appContainer" class="app-container" style="display: none;">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="logo">
+                    <i class="fas fa-cloud"></i>
+                    <div>
+                        <h1>ABSENSI CLOUD</h1>
+                        <p class="subtitle">Sistem Penggajian Terintegrasi</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span id="userName">Loading...</span>
+                        <small id="userPosition">-</small>
+                    </div>
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="user-menu">
+                        <button id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-tachometer-alt"></i> MENU</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="active" data-page="dashboard">
+                    <a href="#"><i class="fas fa-home"></i> Dashboard</a>
+                </li>
+                <li data-page="attendance">
+                    <a href="#"><i class="fas fa-calendar-check"></i> Absensi</a>
+                </li>
+                <li data-page="salary">
+                    <a href="#"><i class="fas fa-money-bill-wave"></i> Penggajian</a>
+                </li>
+                <li data-page="kasbon">
+                    <a href="#"><i class="fas fa-hand-holding-usd"></i> Kasbon & Lembur</a>
+                </li>
+                <li data-page="reports">
+                    <a href="#"><i class="fas fa-chart-bar"></i> Laporan</a>
+                </li>
+                <li data-page="settings">
+                    <a href="#"><i class="fas fa-cog"></i> Pengaturan</a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="connection-status">
+                    <i class="fas fa-wifi"></i>
+                    <span id="connectionStatus">Online</span>
+                </div>
+                <div class="data-info">
+                    <i class="fas fa-database"></i>
+                    <span id="dataSyncStatus">Sync dengan Cloud</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page active">
+                <div class="page-header">
+                    <h2><i class="fas fa-home"></i> Dashboard</h2>
+                    <div class="date-info">
+                        <i class="fas fa-calendar"></i>
+                        <span id="dashboardDate">-</span>
+                    </div>
+                </div>
+                
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card stat-income">
+                        <div class="stat-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Gaji Bulan Ini</h3>
+                            <p class="stat-value" id="currentMonthSalary">Rp 0</p>
+                            <small><span id="attendanceDays">0</span> hari kerja</small>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card stat-attendance">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Kehadiran</h3>
+                            <p class="stat-value" id="attendanceRate">0%</p>
+                            <small><span id="presentDays">0</span> dari <span id="totalDays">0</span> hari</small>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card stat-overtime">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Lembur</h3>
+                            <p class="stat-value" id="totalOvertime">0 jam</p>
+                            <small>Rp <span id="overtimePay">0</span></small>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card stat-kasbon">
+                        <div class="stat-icon">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Kasbon</h3>
+                            <p class="stat-value" id="totalKasbon">Rp 0</p>
+                            <small>Sisa: Rp <span id="remainingKasbon">0</span></small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Today's Quick Actions -->
+                <div class="quick-actions">
+                    <h3><i class="fas fa-bolt"></i> Aksi Cepat Hari Ini</h3>
+                    <div class="actions-grid">
+                        <button id="quickCheckin" class="action-btn btn-success">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>CHECK-IN</span>
+                            <small id="checkinTime">Belum</small>
+                        </button>
+                        <button id="quickCheckout" class="action-btn btn-primary">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>CHECK-OUT</span>
+                            <small id="checkoutTime">Belum</small>
+                        </button>
+                        <button id="quickKasbon" class="action-btn btn-warning">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>KASBON</span>
+                            <small>Tambah kasbon</small>
+                        </button>
+                        <button id="quickReport" class="action-btn btn-info">
+                            <i class="fas fa-file-export"></i>
+                            <span>LAPORAN</span>
+                            <small>Export data</small>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="recent-activity">
+                    <h3><i class="fas fa-history"></i> Aktivitas Terbaru</h3>
+                    <div class="activity-list" id="activityList">
+                        <div class="activity-item">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Tidak ada aktivitas terbaru</p>
+                            <small>-</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Page -->
+            <div id="attendancePage" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-calendar-check"></i> Absensi</h2>
+                    <div class="page-actions">
+                        <select id="attendanceMonth">
+                            <option value="">Pilih Bulan</option>
+                        </select>
+                        <button class="btn-secondary" id="printAttendance">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Attendance Form -->
+                <div class="attendance-form">
+                    <div class="form-header">
+                        <h3><i class="fas fa-edit"></i> Form Absensi Hari Ini</h3>
+                        <div class="current-time" id="attendanceTime">00:00:00</div>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-day"></i> Jenis Kerja</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="workType" value="full" checked>
+                                    <span class="radio-custom"></span>
+                                    <span>Kerja Penuh (1 hari)</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="workType" value="half">
+                                    <span class="radio-custom"></span>
+                                    <span>Setengah Hari (0.5 hari)</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="workType" value="absent">
+                                    <span class="radio-custom"></span>
+                                    <span>Tidak Masuk</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-sticky-note"></i> Keterangan</label>
+                            <textarea id="attendanceNote" placeholder="Catatan (sakit, izin, dll)" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-camera"></i> Bukti Foto (Opsional)</label>
+                            <div class="file-upload">
+                                <input type="file" id="attendancePhoto" accept="image/*" capture="environment" style="display: none;">
+                                <button type="button" class="btn-upload" id="uploadPhotoBtn">
+                                    <i class="fas fa-camera"></i> Ambil Foto
+                                </button>
+                                <span id="photoName">Belum ada foto</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn-primary" id="submitAttendance">
+                            <i class="fas fa-check"></i> Simpan Absensi
+                        </button>
+                        <button class="btn-secondary" id="resetAttendance">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Attendance Calendar -->
+                <div class="attendance-calendar">
+                    <h3><i class="fas fa-calendar-alt"></i> Kalender Absensi</h3>
+                    <div class="calendar-header">
+                        <button id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+                        <h4 id="calendarMonth">Januari 2024</h4>
+                        <button id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid">
+                        <!-- Calendar akan di-generate oleh JavaScript -->
+                    </div>
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <span class="legend-color full"></span>
+                            <span>Kerja Penuh</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color half"></span>
+                            <span>Setengah Hari</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color absent"></span>
+                            <span>Tidak Masuk</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color sunday"></span>
+                            <span>Minggu (Bonus)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salary Page -->
+            <div id="salaryPage" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-money-bill-wave"></i> Penggajian</h2>
+                    <div class="page-actions">
+                        <select id="salaryMonth">
+                            <option value="">Pilih Bulan</option>
+                        </select>
+                        <button class="btn-success" id="calculateSalary">
+                            <i class="fas fa-calculator"></i> Hitung Gaji
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Salary Settings -->
+                <div class="salary-settings">
+                    <h3><i class="fas fa-cog"></i> Setting Gaji</h3>
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-money-bill"></i> Gaji Harian</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-rupiah-sign"></i>
+                                <input type="number" id="dailySalary" placeholder="100000" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-clock"></i> Rate Lembur/jam</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-rupiah-sign"></i>
+                                <input type="number" id="overtimeRate" placeholder="20000" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-gift"></i> Bonus Minggu</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-rupiah-sign"></i>
+                                <input type="number" id="sundayBonus" placeholder="50000" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> Hari Kerja/Bulan</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-calendar-days"></i>
+                                <input type="number" id="workDaysPerMonth" placeholder="26" min="1" max="31">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-primary" id="saveSalarySettings">
+                        <i class="fas fa-save"></i> Simpan Setting
+                    </button>
+                </div>
+                
+                <!-- Salary Calculation -->
+                <div class="salary-calc">
+                    <h3><i class="fas fa-calculator"></i> Kalkulasi Gaji</h3>
+                    <div class="calc-grid">
+                        <div class="calc-item">
+                            <span>Gaji Pokok</span>
+                            <span class="calc-value" id="calcBasic">Rp 0</span>
+                        </div>
+                        <div class="calc-item">
+                            <span>Lembur</span>
+                            <span class="calc-value" id="calcOvertime">Rp 0</span>
+                        </div>
+                        <div class="calc-item">
+                            <span>Bonus Minggu</span>
+                            <span class="calc-value" id="calcSunday">Rp 0</span>
+                        </div>
+                        <div class="calc-item">
+                            <span>Kasbon</span>
+                            <span class="calc-value negative" id="calcKasbon">- Rp 0</span>
+                        </div>
+                        <div class="calc-item total">
+                            <span>Total Gaji Bersih</span>
+                            <span class="calc-value total" id="calcNetSalary">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Salary Details -->
+                <div class="salary-details">
+                    <h3><i class="fas fa-list-alt"></i> Detail Perhitungan</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Hari</th>
+                                <th>Status</th>
+                                <th>Gaji Harian</th>
+                                <th>Lembur</th>
+                                <th>Bonus</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salaryDetails">
+                            <!-- Data akan diisi JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Kasbon & Overtime Page -->
+            <div id="kasbonPage" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-hand-holding-usd"></i> Kasbon & Lembur</h2>
+                    <div class="page-actions">
+                        <button class="btn-primary" id="addKasbonBtn">
+                            <i class="fas fa-plus"></i> Tambah Kasbon
+                        </button>
+                        <button class="btn-warning" id="addOvertimeBtn">
+                            <i class="fas fa-clock"></i> Tambah Lembur
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Kasbon Form -->
+                <div class="kasbon-form">
+                    <h3><i class="fas fa-money-bill-wave"></i> Form Kasbon</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> Tanggal Kasbon</label>
+                            <input type="date" id="kasbonDate">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-money-bill"></i> Jumlah Kasbon</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-rupiah-sign"></i>
+                                <input type="number" id="kasbonAmount" placeholder="100000" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-sticky-note"></i> Keterangan</label>
+                            <input type="text" id="kasbonNote" placeholder="Untuk keperluan...">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-times"></i> Jatuh Tempo</label>
+                            <input type="date" id="kasbonDueDate">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-success" id="saveKasbon">
+                            <i class="fas fa-save"></i> Simpan Kasbon
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Overtime Form -->
+                <div class="overtime-form">
+                    <h3><i class="fas fa-clock"></i> Form Lembur</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> Tanggal Lembur</label>
+                            <input type="date" id="overtimeDate">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-clock"></i> Jam Lembur</label>
+                            <div class="time-inputs">
+                                <input type="number" id="overtimeHours" placeholder="Jam" min="0" max="24">
+                                <span>jam</span>
+                                <input type="number" id="overtimeMinutes" placeholder="Menit" min="0" max="59">
+                                <span>menit</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-sticky-note"></i> Keterangan</label>
+                            <input type="text" id="overtimeNote" placeholder="Deskripsi pekerjaan...">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-money-bill"></i> Rate Lembur</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-rupiah-sign"></i>
+                                <input type="number" id="overtimeRateInput" placeholder="20000" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-warning" id="saveOvertime">
+                            <i class="fas fa-save"></i> Simpan Lembur
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Kasbon & Overtime List -->
+                <div class="transactions-list">
+                    <h3><i class="fas fa-history"></i> Riwayat Transaksi</h3>
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="kasbonList">Kasbon</button>
+                        <button class="tab-btn" data-tab="overtimeList">Lembur</button>
+                    </div>
+                    
+                    <div id="kasbonList" class="tab-content active">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Jumlah</th>
+                                    <th>Keterangan</th>
+                                    <th>Jatuh Tempo</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kasbonTable">
+                                <!-- Data akan diisi JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="overtimeList" class="tab-content">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Jam</th>
+                                    <th>Keterangan</th>
+                                    <th>Rate</th>
+                                    <th>Total</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overtimeTable">
+                                <!-- Data akan diisi JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Page -->
+            <div id="reportsPage" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-chart-bar"></i> Laporan</h2>
+                    <div class="page-actions">
+                        <select id="reportType">
+                            <option value="attendance">Laporan Absensi</option>
+                            <option value="salary">Laporan Gaji</option>
+                            <option value="kasbon">Laporan Kasbon</option>
+                            <option value="overtime">Laporan Lembur</option>
+                        </select>
+                        <button class="btn-primary" id="generateReport">
+                            <i class="fas fa-file-export"></i> Generate Report
+                        </button>
+                        <button class="btn-success" id="exportExcel">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Report Filters -->
+                <div class="report-filters">
+                    <div class="filter-grid">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> Periode Dari</label>
+                            <input type="date" id="reportStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> Sampai</label>
+                            <input type="date" id="reportEndDate">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-filter"></i> Filter Status</label>
+                            <select id="reportFilter">
+                                <option value="all">Semua</option>
+                                <option value="full">Kerja Penuh</option>
+                                <option value="half">Setengah Hari</option>
+                                <option value="absent">Tidak Masuk</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Report Preview -->
+                <div class="report-preview">
+                    <h3><i class="fas fa-eye"></i> Preview Laporan</h3>
+                    <div class="report-content" id="reportContent">
+                        <p class="empty-report">Pilih filter dan klik "Generate Report"</p>
+                    </div>
+                </div>
+                
+                <!-- Statistics -->
+                <div class="report-stats">
+                    <h3><i class="fas fa-chart-pie"></i> Statistik</h3>
+                    <div class="stats-charts">
+                        <div class="chart-container">
+                            <canvas id="attendanceChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="salaryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settingsPage" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-cog"></i> Pengaturan</h2>
+                </div>
+                
+                <div class="settings-sections">
+                    <!-- Profile Settings -->
+                    <div class="settings-section">
+                        <h3><i class="fas fa-user-cog"></i> Profil Pengguna</h3>
+                        <div class="settings-grid">
+                            <div class="form-group">
+                                <label><i class="fas fa-user"></i> Nama Lengkap</label>
+                                <input type="text" id="profileName" placeholder="Nama lengkap">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-envelope"></i> Email</label>
+                                <input type="email" id="profileEmail" placeholder="email@example.com" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-briefcase"></i> Posisi</label>
+                                <select id="profilePosition">
+                                    <option value="staff">Staff</option>
+                                    <option value="supervisor">Supervisor</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="direktur">Direktur</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-phone"></i> No. Telepon</label>
+                                <input type="tel" id="profilePhone" placeholder="0812-3456-7890">
+                            </div>
+                        </div>
+                        <button class="btn-primary" id="updateProfile">
+                            <i class="fas fa-save"></i> Update Profil
+                        </button>
+                    </div>
+                    
+                    <!-- Password Settings -->
+                    <div class="settings-section">
+                        <h3><i class="fas fa-lock"></i> Keamanan</h3>
+                        <div class="settings-grid">
+                            <div class="form-group">
+                                <label><i class="fas fa-lock"></i> Password Baru</label>
+                                <input type="password" id="newPassword" placeholder="Password baru">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-lock"></i> Konfirmasi Password</label>
+                                <input type="password" id="confirmPassword" placeholder="Ulangi password">
+                            </div>
+                        </div>
+                        <button class="btn-warning" id="changePassword">
+                            <i class="fas fa-key"></i> Ganti Password
+                        </button>
+                    </div>
+                    
+                    <!-- App Settings -->
+                    <div class="settings-section">
+                        <h3><i class="fas fa-sliders-h"></i> Pengaturan Aplikasi</h3>
+                        <div class="settings-list">
+                            <label class="switch-label">
+                                <input type="checkbox" id="notificationsToggle" checked>
+                                <span class="switch"></span>
+                                <span>Notifikasi Absensi</span>
+                            </label>
+                            <label class="switch-label">
+                                <input type="checkbox" id="offlineModeToggle" checked>
+                                <span class="switch"></span>
+                                <span>Mode Offline</span>
+                            </label>
+                            <label class="switch-label">
+                                <input type="checkbox" id="autoSyncToggle" checked>
+                                <span class="switch"></span>
+                                <span>Auto Sync Cloud</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Management -->
+                    <div class="settings-section">
+                        <h3><i class="fas fa-database"></i> Manajemen Data</h3>
+                        <div class="data-actions">
+                            <button class="btn-info" id="backupData">
+                                <i class="fas fa-download"></i> Backup Data
+                            </button>
+                            <button class="btn-warning" id="restoreData">
+                                <i class="fas fa-upload"></i> Restore Data
+                            </button>
+                            <button class="btn-danger" id="clearData">
+                                <i class="fas fa-trash"></i> Clear Local Data
+                            </button>
+                        </div>
+                        <div class="data-info">
+                            <p><i class="fas fa-info-circle"></i> Ukuran data: <span id="dataSize">0 MB</span></p>
+                            <p><i class="fas fa-cloud"></i> Terakhir sync: <span id="lastSync">-</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="kasbonModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-money-bill-wave"></i> Tambah Kasbon</h3>
+            <!-- Form ada di kasbonPage -->
+        </div>
+    </div>
+    
+    <div id="overtimeModal" class="modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-clock"></i> Tambah Lembur</h3>
+            <!-- Form ada di kasbonPage -->
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="notifications-container" id="notificationsContainer"></div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="backupFileInput" accept=".json" style="display: none;">
+
+    <!-- JavaScript -->
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js');
+            });
+        }
+    </script>
+</body>
+</html>
